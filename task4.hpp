@@ -10,7 +10,7 @@ void sumsLineOrColumn(int **matrix, int rows, int cols, bool sumRows) {
             for (int j = 0; j < cols; ++j) {
                 sum += matrix[i][j];
             }
-            cout << "Sum of row " << i << ": " << sum << endl;
+            cout << "Sum of row " << i + 1 << ": " << sum << endl;
         }
     } else {
         for (int j = 0; j < cols; ++j) {
@@ -18,7 +18,7 @@ void sumsLineOrColumn(int **matrix, int rows, int cols, bool sumRows) {
             for (int i = 0; i < rows; ++i) {
                 sum += matrix[i][j];
             }
-            cout << "Sum of column " << j << ": " << sum << endl;
+            cout << "Sum of column " << j + 1 << ": " << sum << endl;
         }
     }
 }

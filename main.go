@@ -6,13 +6,8 @@ import (
 	"time"
 )
 
-const (
-	N = 6   // количество вершин
-	P = 0.4 // вероятность наличия ребра
-)
-
 // Генерация матрицы смежности для неориентированного графа
-func generateAdjacencyMatrix(n int, p float64, rng *rand.Rand) [][]int {
+func generateAdjacencyMatrix(n int, p float64, rng *rand.Rand, size *int, kf bool) [][]int {
 	matrix := make([][]int, n)
 	for i := range matrix {
 		matrix[i] = make([]int, n)
@@ -22,7 +17,16 @@ func generateAdjacencyMatrix(n int, p float64, rng *rand.Rand) [][]int {
 			if rng.Float64() <= p {
 				matrix[i][j] = 1
 				matrix[j][i] = 1
+				if kf {
+					matrix[j][i] *= -1
+				}
+				*size++
 			}
+		}
+	}
+	for i := 0; i < n; i++ {
+		if rng.Float64() <= p {
+			matrix[i][i] = 1
 		}
 	}
 	return matrix
@@ -55,6 +59,9 @@ func degreesFromAdjacency(matrix [][]int) []int {
 	deg := make([]int, n)
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
+			if i == j {
+				deg[i] += matrix[i][j]
+			}
 			deg[i] += matrix[i][j]
 		}
 	}
@@ -68,19 +75,30 @@ type VertexClassification struct {
 	Dominating []int
 }
 
-func analyzeVertices(deg []int, n int) VertexClassification {
+func analyzeVertices(matrix [][]int, n int, kf bool) VertexClassification {
 	var res VertexClassification
-	for i, d := range deg {
-		switch {
-		case d == 0:
+
+	flagIsolated := true
+	for i := 0; i < n; i++ {
+		count, sums := 0, 0
+		for j := 0; j < n; j++ {
+			if i != j {
+				if matrix[i][j] != 0 {
+					flagIsolated = false
+					sums += matrix[i][j]
+					count++
+				}
+			}
+		}
+		if flagIsolated {
 			res.Isolated = append(res.Isolated, i+1)
-		case d == 1:
+		} else if sums == n-1 {
+			res.Dominating = append(res.Dominating, i+1)
+		} else if (count == 1 && !kf) || (sums < 0 && kf && sums+count == 0) {
 			res.Terminal = append(res.Terminal, i+1)
 		}
-		if d == n-1 {
-			res.Dominating = append(res.Dominating, i+1)
-		}
 	}
+
 	return res
 }
 
@@ -89,8 +107,7 @@ type Edge struct {
 	V int
 }
 
-func buildIncidenceMatrix(adj [][]int) ([][]int, []Edge) {
-	n := len(adj)
+func buildIncidenceMatrix(adj [][]int, n int) ([][]int, []Edge) {
 	var edges []Edge
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
@@ -133,8 +150,16 @@ func sizeGraph(adj [][]int) int {
 func main() {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	var n int
+	var p float64
+	var kf bool = false
+	fmt.Print("Введите количество вершин: ")
+	fmt.Scanf("%d", &n)
+	fmt.Print("Введите вероятность: ")
+	fmt.Scanf("%f", &p)
+
 	// Метки вершин
-	vertexLabels := make([]string, N)
+	vertexLabels := make([]string, n)
 	for i := range vertexLabels {
 		vertexLabels[i] = fmt.Sprintf("v%d", i+1)
 	}
@@ -144,11 +169,10 @@ func main() {
 	fmt.Println("ЗАДАНИЕ 1. Матрица смежности")
 	fmt.Println("============================================================")
 
-	adj := generateAdjacencyMatrix(N, P, rng)
+	sizeAdj := 0
+	adj := generateAdjacencyMatrix(n, p, rng, &sizeAdj, kf)
 	printMatrix(adj, vertexLabels, vertexLabels, "Матрица смежности графа G:")
 
-	// Размер графа
-	sizeAdj := sizeGraph(adj) / 2
 	fmt.Printf("\nРазмер графа = %d\n", sizeAdj)
 
 	// Степени вершин
@@ -158,7 +182,7 @@ func main() {
 		fmt.Printf("  deg(v%d) = %d\n", i+1, d)
 	}
 
-	cls1 := analyzeVertices(degAdj, N)
+	cls1 := analyzeVertices(adj, n, kf)
 	fmt.Println()
 	printIntSlice("Изолированные вершины:  ", cls1.Isolated)
 	printIntSlice("Концевые вершины:       ", cls1.Terminal)
@@ -169,7 +193,7 @@ func main() {
 	fmt.Println("ЗАДАНИЕ 2. Матрица инцидентности")
 	fmt.Println("============================================================")
 
-	inc, edges := buildIncidenceMatrix(adj)
+	inc, edges := buildIncidenceMatrix(adj, n)
 
 	// Метки столбцов
 	edgeLabels := make([]string, len(edges))
@@ -189,7 +213,7 @@ func main() {
 	fmt.Printf("\nРазмер графа = %d \n", sizeInc)
 
 	// Степени вершин
-	degInc := make([]int, N)
+	degInc := make([]int, n)
 	for i, row := range inc {
 		for _, v := range row {
 			degInc[i] += v
@@ -199,10 +223,4 @@ func main() {
 	for i, d := range degInc {
 		fmt.Printf("  deg(v%d) = %d\n", i+1, d)
 	}
-
-	cls2 := analyzeVertices(degInc, N)
-	fmt.Println()
-	printIntSlice("Изолированные вершины:  ", cls2.Isolated)
-	printIntSlice("Концевые вершины:       ", cls2.Terminal)
-	printIntSlice("Доминирующие вершины:   ", cls2.Dominating)
 }

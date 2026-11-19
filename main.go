@@ -161,9 +161,13 @@ func (g Graph) DFSMatrix(start int) []int {
 
 	dfs = func(v int) {
 		for i := 0; i < g.N; i++ {
-			if g.Mat[v][i] == 1 && dist[i] == -1 {
-				dist[i] = dist[v] + 1
-				dfs(i)
+			if g.Mat[v][i] == 1 {
+				newDist := dist[v] + 1
+
+				if dist[i] == -1 || newDist < dist[i] {
+					dist[i] = newDist
+					dfs(i)
+				}
 			}
 		}
 	}
@@ -186,8 +190,9 @@ func (g Graph) DFSAdjacencyList(start int) []int {
 
 	dfs = func(v int) {
 		for _, to := range list[v] {
-			if dist[to] == -1 {
-				dist[to] = dist[v] + 1
+			newDist := dist[v] + 1
+			if dist[to] == -1 || newDist < dist[to] {
+				dist[to] = newDist
 				dfs(to)
 			}
 		}
@@ -308,6 +313,25 @@ func main() {
 			printDistances("BFS по матрице смежности:", dist)
 			fmt.Printf("Время выполнения: %v\n", elapsed)
 
+			distMatrix := make([][]int, g.N)
+			for i := 0; i < g.N; i++ {
+				distMatrix[i] = g.BFSMatrix(i)
+			}
+
+			fmt.Println("\n\nМатрица расстояний:")
+			fmt.Printf("           ")
+			for j := 0; j < g.N; j++ {
+				fmt.Printf("%d ", j+1)
+			}
+			fmt.Println()
+			for i := 0; i < g.N; i++ {
+				fmt.Printf("Вершина %d: ", i+1)
+				for j := 0; j < g.N; j++ {
+					fmt.Printf("%d ", distMatrix[i][j])
+				}
+				fmt.Println()
+			}
+
 		case 5:
 			if g.N == 0 {
 				fmt.Println("Сначала создайте граф (пункт 1).")
@@ -337,6 +361,25 @@ func main() {
 
 			printDistances("DFS по матрице смежности:", dist)
 			fmt.Printf("Время выполнения: %v\n", elapsed)
+
+			distMatrix := make([][]int, g.N)
+			for i := 0; i < g.N; i++ {
+				distMatrix[i] = g.DFSMatrix(i)
+			}
+
+			fmt.Println("\n\nМатрица расстояний:")
+			fmt.Printf("           ")
+			for j := 0; j < g.N; j++ {
+				fmt.Printf("%d ", j+1)
+			}
+			fmt.Println()
+			for i := 0; i < g.N; i++ {
+				fmt.Printf("Вершина %d: ", i+1)
+				for j := 0; j < g.N; j++ {
+					fmt.Printf("%d ", distMatrix[i][j])
+				}
+				fmt.Println()
+			}
 
 		case 7:
 			if g.N == 0 {
